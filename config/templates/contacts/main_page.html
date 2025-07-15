@@ -1,0 +1,135 @@
+<!-- django_contact_manager/contacts/templates/contacts/main_page.html -->
+
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title_block %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col items-center justify-center min-h-[calc(100vh-150px)] text-center px-4">
+        <h1 class="text-5xl font-extrabold text-blue-800 mb-6 animate-fade-in-down">
+            Добро пожаловать в Менеджер контактов!
+        </h1>
+        <p class="text-xl text-gray-700 mb-10 max-w-2xl animate-fade-in-up">
+            Ваш идеальный инструмент для организации и управления всеми вашими контактами в одном месте.
+            Легко добавляйте, редактируйте, просматривайте и удаляйте информацию.
+        </p>
+
+        {# Section for statistics cards and the diagram #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 w-full max-w-4xl">
+            {# Statistics Cards #}
+            <div class="flex flex-col space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-blue-200 animate-fade-in-up-delay-1">
+                    <h3 class="text-2xl font-semibold text-blue-700 mb-2">Всего контактов</h3> {# Total Contacts #}
+                    <p class="text-5xl font-bold text-blue-900">{{ total_contacts }}</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-green-200 animate-fade-in-up-delay-2">
+                    <h3 class="text-2xl font-semibold text-green-700 mb-2">Создано сегодня</h3> {# Created Today #}
+                    <p class="text-5xl font-bold text-green-900">{{ contacts_created_today }}</p>
+                </div>
+                {# Placeholder for deleted today - requires model changes to track deletions #}
+                {#
+                <div class="bg-white p-6 rounded-lg shadow-md border border-red-200 animate-fade-in-up-delay-3">
+                    <h3 class="text-2xl font-semibold text-red-700 mb-2">Удалено сегодня</h3> {# Deleted Today #}
+                    <p class="text-5xl font-bold text-red-900">N/A</p>
+                </div>
+                #}
+            </div>
+
+            {# Chart Section #}
+            <div class="bg-white p-6 rounded-lg shadow-md border border-purple-200 flex items-center justify-center animate-fade-in-up-delay-3">
+                <canvas id="contactStatsChart" class="max-h-80"></canvas> {# Canvas for the chart #}
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6">
+            <a href="{% url 'contacts:contact_list' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 text-lg">
+                Просмотреть контакты
+            </a>
+            <a href="{% url 'contacts:add_contact' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 text-lg">
+                Добавить новый контакт
+            </a>
+        </div>
+    </div>
+
+    {# Chart.js CDN (placed at the end of content block for faster page load) #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('contactStatsChart').getContext('2d');
+
+            const totalContacts = {{ total_contacts }};
+            const contactsCreatedToday = {{ contacts_created_today }};
+            const contactsCreatedBeforeToday = {{ contacts_created_before_today }};
+
+            const data = {
+                labels: ['Создано сегодня', 'Создано ранее'], // Created Today, Created Earlier
+                datasets: [{
+                    data: [contactsCreatedToday, contactsCreatedBeforeToday],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.8)', // Greenish for today
+                        'rgba(153, 102, 255, 0.8)' // Purplish for before today
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14,
+                                family: 'Inter'
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Распределение контактов', // Contact Distribution
+                        font: {
+                            size: 18,
+                            family: 'Inter',
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    }
+                }
+            };
+
+            new Chart(ctx, {
+                type: 'pie', // Or 'doughnut' for a donut chart
+                data: data,
+                options: options
+            });
+        });
+    </script>
+
+    <style>
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-down {
+            animation: fadeInDown 1s ease-out forwards;
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 1s ease-out forwards 0.5s; /* Delay for a nice sequence */
+        }
+        /* Add delays for sequential animation of stats cards */
+        .animate-fade-in-up-delay-1 { animation: fadeInUp 1s ease-out forwards 1.0s; }
+        .animate-fade-in-up-delay-2 { animation: fadeInUp 1s ease-out forwards 1.2s; }
+        .animate-fade-in-up-delay-3 { animation: fadeInUp 1s ease-out forwards 1.4s; }
+    </style>
+{% endblock %}

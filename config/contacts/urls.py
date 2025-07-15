@@ -3,9 +3,10 @@ from . import views
 app_name ='contacts'
 
 urlpatterns = [
- path('',views.contact_list, name='contact_list'),
+ path('contacts/',views.contact_list, name='contact_list'),
  path('about/',views.about, name="about"),
  path('add/', views.add_contact, name='add_contact'),
  path('edit/<int:pk>/', views.edit_contact, name='edit_contact'),
- path('delete/<int:pk>/',views.delete_contact, name='delete_contact' )
+ path('delete/<int:pk>/',views.delete_contact, name='delete_contact' ),
+ path('',views.main_page,name='home')
 ]

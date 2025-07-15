@@ -1,6 +1,8 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from .models import Contact
 from .forms import ContactForm
+from django.utils import timezone
+from datetime import timedelta
 def contact_list(request):
     contacts = Contact.objects.all()
 
@@ -9,7 +11,20 @@ def contact_list(request):
         'page_title':'Список контактов'
     }
     return render(request,'contacts/contact_list.html',context)
-    
+def main_page(request):
+    total_contacts = Contact.objects.count()
+    today = timezone.localdate()
+    contacts_created_today = Contact.objects.filter(
+        created_at__date=today
+    ).count()
+    contacts_before_today = total_contacts - contacts_created_today
+    context = {
+        'page_title': "Менеджер контактов",
+        'total_contacts':total_contacts,
+        'contacts_created_today':contacts_created_today,
+        'contacts_created_before_today': contacts_before_today,
+    }
+    return render(request,'contacts/main_page.html',context)
 def about(request):
     
     context = {
