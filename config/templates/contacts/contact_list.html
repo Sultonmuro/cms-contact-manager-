@@ -1,0 +1,48 @@
+<!-- django_contact_manager/contacts/templates/contacts/contact_list.html (find the "Удалить" button) -->
+
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title_block %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <div class="flex justify-end mb-6">
+        <a href="{% url 'contacts:add_contact' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+            Добавить новый контакт
+        </a>
+    </div>
+
+    {% if contacts %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for contact in contacts %}
+                <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-6 flex flex-col justify-between transition duration-300 ease-in-out transform hover:shadow-xl hover:-translate-y-1">
+                    <div class="flex flex-col mb-4">
+                        <h2 class="text-2xl font-semibold text-blue-700 mb-2">{{ contact.name }}</h2>
+                        <p class="text-gray-600 mb-1 flex items-center">
+                            <strong class="text-gray-700 mr-2">Телефон:</strong>
+                            <span>{{ contact.phone_number }}</span>
+                        </p>
+                        <p class="text-gray-600 flex items-center">
+                            <strong class="text-gray-700 mr-2">Email:</strong>
+                            <span>{{ contact.email }}</span>
+                        </p>
+                    </div>
+                    <div class="mt-4 flex justify-start space-x-3">
+                        <a href="{% url 'contacts:edit_contact' pk=contact.pk %}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105">
+                            Редактировать
+                        </a>
+                        {# UPDATE THIS LINE: Link to the delete_contact URL, passing the contact's primary key #}
+                        <a href="{% url 'contacts:delete_contact' pk=contact.pk %}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105">
+                            Удалить
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg" role="alert">
+            <p class="font-bold">Нет контактов</p>
+            <p>В настоящее время в вашей базе данных нет контактов. Добавьте несколько!</p>
+        </div>
+    {% endif %}
+{% endblock %}
