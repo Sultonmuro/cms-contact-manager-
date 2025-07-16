@@ -1,0 +1,51 @@
+<!-- django_contact_manager/contacts/templates/contacts/signup.html -->
+
+{% extends 'base.html' %}
+
+{% block title %}Регистрация{% endblock %} {# Registration #}
+{% block page_title_block %}Создать аккаунт{% endblock %} {# Create Account #}
+
+{% block content %}
+    <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            {# Display non-field errors #}
+            {% if form.non_field_errors %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {# Loop through form fields (username, password, password confirmation) #}
+            {% for field in form %}
+                <div class="mb-4">
+                    <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+                        {{ field.label }}
+                    </label>
+                    {{ field }}
+                    {% for error in field.errors %}
+                        <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full">
+                Зарегистрироваться {# Register #}
+            </button>
+        </form>
+
+        <p class="mt-6 text-center text-gray-600">
+            Уже есть аккаунт? <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-800 font-bold">Войти</a> {# Already have an account? Log In #}
+        </p>
+    </div>
+
+    <style>
+        /* Re-using the .form-input style from login.html/contact_form.html */
+        .form-input {
+            @apply shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500;
+        }
+    </style>
+{% endblock %}

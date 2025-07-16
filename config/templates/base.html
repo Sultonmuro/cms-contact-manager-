@@ -1,65 +1,75 @@
+<!-- django_contact_manager/templates/base.html -->
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Contact Manager{% endblock %}</title>
+    <title>{% block title %}Менеджер контактов{% endblock %}</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            @apply bg-gray-100 text-gray-800;
-        }
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background-color: #f3f4f6; /* Light gray background */
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-    <nav class="bg-blue-600 p-4 shadow-md">
+<body>
+    <header class="bg-blue-600 text-white p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
-            <a href="{% url 'contacts:home' %}" class="text-white text-2xl font-bold rounded-md px-3 py-2 hover:bg-blue-700 transition duration-300">
+            <a href="{% url 'home' %}" class="text-3xl font-bold hover:text-blue-200 transition duration-300">
                 Менеджер контактов
             </a>
-            <div class="space-x-4">
-                <a href="{% url 'contacts:contact_list' %}" class="text-white text-lg font-medium rounded-md px-3 py-2 hover:bg-blue-700 transition duration-300">
-                    Все контакты
-                </a>
-                <a href="{% url 'admin:index' %}" class="text-white text-lg font-medium rounded-md px-3 py-2 hover:bg-blue-700 transition duration-300">
-                    Админ-панель
-                </a>
-            </div>
+            <nav>
+                <ul class="flex space-x-6 text-lg items-center">
+                    {% if user.is_authenticated %}
+                        <li>
+                            <span class="text-blue-200">Привет, {{ user.username }}!</span>
+                        </li>
+                        <li>
+                            <a href="{% url 'contacts:contact_list' %}" class="hover:text-blue-200 transition duration-300">Все контакты</a>
+                        </li>
+                        <li>
+                            <a href="{% url 'contacts:chatbot_view' %}" class="hover:text-blue-200 transition duration-300">Чат с OpenAI моделью</a> {# <--- ADD THIS LINE #}
+                        </li>
+                        <li>
+                            <a href="{% url 'admin:index' %}" class="hover:text-blue-200 transition duration-300">Админ-панель</a>
+                        </li>
+                        <li>
+                            <a href="{% url 'contacts:about' %}" class="hover:text-blue-200 transition duration-300">О нас</a>
+                        </li>
+                        <li>
+                            <form action="{% url 'logout' %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                    Выйти
+                                </button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li>
+                            <a href="{% url 'login' %}" class="hover:text-blue-200 transition duration-300">Войти</a>
+                        </li>
+                        <li>
+                            <a href="{% url 'contacts:signup' %}" class="hover:text-blue-200 transition duration-300">Зарегистрироваться</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
-    </nav>
+    </header>
 
-    <main class="container mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl flex-grow">
-        <h1 class="text-4xl font-extrabold text-gray-900 mb-6 pb-2 border-b-2 border-blue-500">
-            {% block page_title_block %}{{ page_title }}{% endblock %}
-        </h1>
+    <main class="container mx-auto mt-8 p-4">
+        <h1 class="text-4xl font-bold text-gray-800 mb-6 text-center">{% block page_title_block %}{% endblock %}</h1>
         {% block content %}
-        <!-- Content from child templates will go here -->
         {% endblock %}
     </main>
 
-    <footer class="bg-gray-800 text-white text-center p-4 mt-8">
+    <footer class="bg-gray-800 text-white p-4 mt-12 text-center">
         <div class="container mx-auto">
-            &copy; 2024 Менеджер контактов. Все права защищены.
+            <p>&copy; 2024 Менеджер контактов. Все права защищены.</p>
         </div>
     </footer>
 </body>

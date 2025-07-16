@@ -6,13 +6,38 @@
 {% block page_title_block %}{{ page_title }}{% endblock %}
 
 {% block content %}
-    <div class="flex justify-end mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
+        {# Search Form #}
+        <form method="GET" action="{% url 'contacts:contact_list' %}" class="w-full sm:w-1/2 flex">
+            <input type="text" name="q" placeholder="Поиск по имени, телефону или email..."
+                   value="{{ search_query }}" {# Pre-fill with current query #}
+                   class="flex-grow p-3 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-r-md shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                Поиск
+            </button>
+        </form>
+
         <a href="{% url 'contacts:add_contact' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
             Добавить новый контакт
         </a>
     </div>
 
-    {# Removed Calendar and Contacts by Date Section from here #}
+    {# Calendar and Contacts by Date Section #}
+    <div class="w-full bg-white p-8 rounded-lg shadow-xl border border-gray-200 mb-12">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Контакты по дате</h2> {# Contacts by Date #}
+        
+        <div class="mb-6 flex justify-center items-center space-x-2"> {# Added items-center and space-x-2 #}
+            <input type="text" id="datePicker" placeholder="Выберите дату" class="p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg w-full max-w-xs text-center">
+            <button id="clearDatePicker" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 text-sm">
+                Очистить {# Clear #}
+            </button>
+        </div>
+
+        <div id="contactsByDateList" class="space-y-4 text-left">
+            {# Contacts will be loaded here by JavaScript #}
+            <p class="text-gray-500 text-center py-4">Выберите дату, чтобы увидеть контакты, созданные в этот день.</p>
+        </div>
+    </div>
 
     {% if contacts %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -28,7 +53,7 @@
                             <strong class="text-gray-700 mr-2">Email:</strong>
                             <span>{{ contact.email }}</span>
                         </p>
-                        {# Display created_at for individual contacts - RETAINED #}
+                        {# Display created_at for individual contacts #}
                         <p class="text-gray-500 text-sm mt-2">
                             Создан: {{ contact.created_at|date:"d M Y H:i" }}
                         </p>
@@ -44,6 +69,28 @@
                 </div>
             {% endfor %}
         </div>
+
+        {# Pagination Controls #}
+        <div class="flex justify-center mt-8 space-x-2">
+            {% if contacts.has_previous %}
+                <a href="?page={{ contacts.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    Предыдущая {# Previous #}
+                </a>
+            {% endif %}
+
+            <span class="text-gray-700 font-medium py-2 px-4">
+                Страница {{ contacts.number }} из {{ contacts.paginator.num_pages }} {# Page X of Y #}
+            </span>
+
+            {% if contacts.has_next %}
+                <a href="?page={{ contacts.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    Следующая {# Next #}
+                </a>
+            {% endif %}
+        </div>
+
     {% else %}
         <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg" role="alert">
             <p class="font-bold">Нет контактов</p>
@@ -51,5 +98,112 @@
         </div>
     {% endif %}
 
-    {# Removed Flatpickr CSS/JS and the JavaScript logic for contacts by date from here #}
+    {# Flatpickr CSS #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    {# Flatpickr JS #}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const datePicker = document.getElementById('datePicker');
+            const contactsByDateList = document.getElementById('contactsByDateList');
+            const clearDatePickerBtn = document.getElementById('clearDatePicker'); // Get the new button
+
+            // Initialize Flatpickr
+            const fp = flatpickr(datePicker, {
+                dateFormat: "Y-m-d",
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length > 0) {
+                        fetchContactsByDate(dateStr);
+                    } else {
+                        // This case handles when the date is cleared internally by flatpickr
+                        contactsByDateList.innerHTML = '<p class="text-gray-500 text-center py-4">Выберите дату, чтобы увидеть контакты, созданные в этот день.</p>';
+                    }
+                }
+            });
+
+            // Event listener for the new Clear button
+            clearDatePickerBtn.addEventListener('click', function() {
+                fp.clear(); // Clear the date picker selection
+                contactsByDateList.innerHTML = '<p class="text-gray-500 text-center py-4">Выберите дату, чтобы увидеть контакты, созданные в этот день.</p>'; // Reset list content
+            });
+
+
+            async function fetchContactsByDate(date) {
+                // Improved Loading State
+                contactsByDateList.innerHTML = `
+                    <div class="flex items-center justify-center py-8 text-blue-600">
+                        <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-xl font-medium">Загрузка контактов...</p>
+                    </div>
+                `;
+                try {
+                    const response = await fetch(`{% url 'contacts:contacts_by_date_api' %}?date=${date}`);
+                    const data = await response.json();
+
+                    if (data.error) {
+                        contactsByDateList.innerHTML = `<p class="text-red-500 text-center py-4">Ошибка: ${data.error}</p>`;
+                        return;
+                    }
+
+                    if (data.contacts && data.contacts.length > 0) {
+                        let html = '<ul class="list-disc list-inside space-y-2">';
+                        data.contacts.forEach(contact => {
+                            const createdAt = contact.created_at ? 
+                                new Date(contact.created_at).toLocaleDateString('ru-RU', {
+                                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                }) : 'N/A';
+                            
+                            // Construct edit and delete URLs dynamically
+                            // Use encodeURIComponent to ensure PKs are safely passed in URLs
+                            const editUrl = `{% url 'contacts:edit_contact' pk=0 %}`.replace('0', contact.id);
+                            const deleteUrl = `{% url 'contacts:delete_contact' pk=0 %}`.replace('0', contact.id);
+
+                            html += `
+                                <li class="bg-blue-50 p-3 rounded-md shadow-sm border border-blue-100 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                    <div>
+                                        <strong class="text-blue-800 text-lg">${contact.name}</strong><br>
+                                        <span class="text-gray-700">Телефон: ${contact.phone_number}</span><br>
+                                        <span class="text-gray-700">Email: ${contact.email}</span>
+                                    </div>
+                                    <div class="text-gray-500 text-sm mt-2 sm:mt-0 sm:text-right">
+                                        Создан: ${createdAt}
+                                        <div class="mt-2 flex justify-end space-x-2">
+                                            <a href="${editUrl}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-md text-sm transition duration-300">
+                                                Редактировать
+                                            </a>
+                                            <a href="${deleteUrl}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-md text-sm transition duration-300">
+                                                Удалить
+                                            </a>
+                                        </div>
+                                    </div>
+                                </li>
+                            `;
+                        });
+                        html += '</ul>';
+                        contactsByDateList.innerHTML = html;
+                    } else {
+                        // Improved Empty State
+                        contactsByDateList.innerHTML = `
+                            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg text-center" role="alert">
+                                <p class="font-bold">Нет контактов</p>
+                                <p>На эту дату контактов не найдено.</p>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error fetching contacts:', error);
+                    contactsByDateList.innerHTML = `
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg text-center" role="alert">
+                            <p class="font-bold">Ошибка загрузки</p>
+                            <p>Не удалось загрузить контакты. Попробуйте снова.</p>
+                        </div>
+                    `;
+                }
+            }
+        });
+    </script>
 {% endblock %}

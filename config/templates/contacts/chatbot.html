@@ -1,0 +1,174 @@
+<!-- django_contact_manager/contacts/templates/contacts/chatbot.html -->
+
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title_block %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col h-[80vh] max-w-3xl mx-auto bg-gray-700 rounded-lg shadow-2xl overflow-hidden">
+        {# Chat Messages Area #}
+        <div id="chat-messages" class="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-800 text-white">
+            {# Initial message #}
+            <div class="flex justify-start">
+                <div class="max-w-[75%] bg-gray-600 p-3 rounded-lg shadow-md text-sm">
+                    Привет! Я ваш помощник по контактам. Спросите меня о чем-нибудь!
+                </div>
+            </div>
+        </div>
+
+        {# Input and Send Button Area #}
+        <div class="p-4 bg-gray-700 border-t border-gray-600 flex items-center space-x-3">
+            <input type="text" id="user-input" placeholder="Отправить сообщение..."
+                   class="flex-grow p-3 rounded-lg bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-400 text-sm">
+            <button id="send-button"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                    <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.542 60.542 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.542 60.542 0 0 0 3.478 2.405Z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+
+            function appendMessage(sender, message, isTyping = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
+                
+                const bubbleDiv = document.createElement('div');
+                
+                // FIX: Split the class string into individual classes
+                const commonClasses = ['p-3', 'rounded-lg', 'max-w-[75%]', 'shadow-md', 'text-sm'];
+                const senderSpecificClasses = sender === 'user' ? ['bg-blue-600', 'text-white'] : ['bg-gray-600', 'text-white'];
+                
+                bubbleDiv.classList.add(...commonClasses, ...senderSpecificClasses); // Use spread operator
+
+                if (isTyping) {
+                    bubbleDiv.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <div class="dot-flashing"></div>
+                            <span class="text-gray-400">Печатает...</span>
+                        </div>
+                    `;
+                } else {
+                    bubbleDiv.textContent = message;
+                }
+                
+                messageDiv.appendChild(bubbleDiv);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+                return messageDiv; // Return the messageDiv
+            }
+
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+
+                appendMessage('user', message);
+                userInput.value = ''; // Clear input
+
+                // Add loading indicator
+                const loadingIndicator = appendMessage('ai', '', true); // Pass true for isTyping
+
+                try {
+                    const response = await fetch('{% url "contacts:chatbot_view" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': getCookie('csrftoken') // Get CSRF token
+                        },
+                        body: `message=${encodeURIComponent(message)}`
+                    });
+
+                    chatMessages.removeChild(loadingIndicator); // Remove loading indicator
+
+                    const data = await response.json();
+                    if (data.response) {
+                        appendMessage('ai', data.response);
+                    } else if (data.error) {
+                        appendMessage('ai', `Ошибка: ${data.error}`);
+                    }
+                } catch (error) {
+                    chatMessages.removeChild(loadingIndicator); // Remove loading indicator
+                    console.error('Error sending message:', error);
+                    appendMessage('ai', 'Произошла ошибка при отправке сообщения.');
+                }
+            }
+
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Function to get CSRF token from cookies
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        });
+    </script>
+
+    {# Custom CSS for typing indicator (dot-flashing) #}
+    <style>
+        .dot-flashing {
+            position: relative;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #94a3b8; /* slate-400 */
+            color: #94a3b8;
+            animation: dotFlashing 1s infinite linear alternate;
+            animation-delay: .5s;
+        }
+
+        .dot-flashing::before, .dot-flashing::after {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #94a3b8;
+            color: #94a3b8;
+            animation: dotFlashing 1s infinite linear alternate;
+        }
+
+        .dot-flashing::before {
+            left: -15px;
+            animation-delay: 0s;
+        }
+
+        .dot-flashing::after {
+            left: 15px;
+            animation-delay: 1s;
+        }
+
+        @keyframes dotFlashing {
+            0% {
+                background-color: #94a3b8;
+            }
+            50%,
+            100% {
+                background-color: #e2e8f0; /* slate-200 */
+            }
+        }
+    </style>
+{% endblock %}
