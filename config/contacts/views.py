@@ -3,6 +3,9 @@ from .models import Contact
 from .forms import ContactForm
 from django.utils import timezone
 from datetime import timedelta
+from django.http import JsonResponse
+from django.core.serializers import serialize
+import json
 def contact_list(request):
     contacts = Contact.objects.all()
 
@@ -25,6 +28,25 @@ def main_page(request):
         'contacts_created_before_today': contacts_before_today,
     }
     return render(request,'contacts/main_page.html',context)
+def get_contacts_by_date(request):
+    seletected_date_str = request.GET.get('date')
+    contacts_on_date = []
+
+    if seletected_date_str:
+        try:
+            selected_date = timezone.datetime.strptime(seletected_date_str,'%Y-%m-%d').date()
+
+            contacts_on_date = list(Contact.objects.filter(created_at__date=selected_date).values('id','name','phone_number','email','created_at'))
+        
+            for contact in contacts_on_date:
+                if contact['created_at']:
+                    contact['created_at'] = contact['created_at'].isoformat()
+        except ValueError:
+             return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e) },status=500)
+    return JsonResponse({'contacts': contacts_on_date})
+
 def about(request):
     
     context = {

@@ -1,4 +1,4 @@
-
+<!-- django_contact_manager/contacts/templates/contacts/contact_list.html -->
 
 {% extends 'base.html' %}
 
@@ -11,6 +11,8 @@
             Добавить новый контакт
         </a>
     </div>
+
+    {# Removed Calendar and Contacts by Date Section from here #}
 
     {% if contacts %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -26,12 +28,15 @@
                             <strong class="text-gray-700 mr-2">Email:</strong>
                             <span>{{ contact.email }}</span>
                         </p>
+                        {# Display created_at for individual contacts - RETAINED #}
+                        <p class="text-gray-500 text-sm mt-2">
+                            Создан: {{ contact.created_at|date:"d M Y H:i" }}
+                        </p>
                     </div>
                     <div class="mt-4 flex justify-start space-x-3">
                         <a href="{% url 'contacts:edit_contact' pk=contact.pk %}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105">
                             Редактировать
                         </a>
-                        {# UPDATE THIS LINE: Link to the delete_contact URL, passing the contact's primary key #}
                         <a href="{% url 'contacts:delete_contact' pk=contact.pk %}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105">
                             Удалить
                         </a>
@@ -45,4 +50,6 @@
             <p>В настоящее время в вашей базе данных нет контактов. Добавьте несколько!</p>
         </div>
     {% endif %}
+
+    {# Removed Flatpickr CSS/JS and the JavaScript logic for contacts by date from here #}
 {% endblock %}

@@ -28,7 +28,7 @@
                     <p class="text-5xl font-bold text-green-900">{{ contacts_created_today }}</p>
                 </div>
                 {# Placeholder for deleted today - requires model changes to track deletions #}
-               
+                
                 <div class="bg-white p-6 rounded-lg shadow-md border border-red-200 animate-fade-in-up-delay-3">
                     <h3 class="text-2xl font-semibold text-red-700 mb-2">Удалено сегодня</h3> {# Deleted Today #}
                     <p class="text-5xl font-bold text-red-900">N/A</p>
@@ -36,9 +36,23 @@
                 
             </div>
 
-            {# Chart Section #}
+            {# Chart Section - RESTORED #}
             <div class="bg-white p-6 rounded-lg shadow-md border border-purple-200 flex items-center justify-center animate-fade-in-up-delay-3">
                 <canvas id="contactStatsChart" class="max-h-80"></canvas> {# Canvas for the chart #}
+            </div>
+        </div>
+
+        {# New Calendar and Contacts by Date Section - RESTORED #}
+        <div class="w-full max-w-4xl bg-white p-8 rounded-lg shadow-xl border border-gray-200 mb-12 animate-fade-in-up-delay-4">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Контакты по дате</h2> {# Contacts by Date #}
+            
+            <div class="mb-6 flex justify-center">
+                <input type="text" id="datePicker" placeholder="Выберите дату" class="p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg w-full max-w-xs text-center">
+            </div>
+
+            <div id="contactsByDateList" class="space-y-4 text-left">
+                {# Contacts will be loaded here by JavaScript #}
+                <p class="text-gray-500 text-center">Выберите дату, чтобы увидеть контакты, созданные в этот день.</p>
             </div>
         </div>
 
@@ -52,23 +66,28 @@
         </div>
     </div>
 
-    {# Chart.js CDN (placed at the end of content block for faster page load) #}
+    {# Chart.js CDN #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {# Flatpickr CSS #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    {# Flatpickr JS #}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Chart.js initialization
             const ctx = document.getElementById('contactStatsChart').getContext('2d');
-
             const totalContacts = {{ total_contacts }};
             const contactsCreatedToday = {{ contacts_created_today }};
             const contactsCreatedBeforeToday = {{ contacts_created_before_today }};
 
             const data = {
-                labels: ['Создано сегодня', 'Создано ранее'], // Created Today, Created Earlier
+                labels: ['Создано сегодня', 'Создано ранее'],
                 datasets: [{
                     data: [contactsCreatedToday, contactsCreatedBeforeToday],
                     backgroundColor: [
-                        'rgba(75, 192, 192, 0.8)', // Greenish for today
-                        'rgba(153, 102, 255, 0.8)' // Purplish for before today
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
                     ],
                     borderColor: [
                         'rgba(75, 192, 192, 1)',
@@ -85,30 +104,75 @@
                     legend: {
                         position: 'top',
                         labels: {
-                            font: {
-                                size: 14,
-                                family: 'Inter'
-                            }
+                            font: { size: 14, family: 'Inter' }
                         }
                     },
                     title: {
                         display: true,
-                        text: 'Распределение контактов', // Contact Distribution
-                        font: {
-                            size: 18,
-                            family: 'Inter',
-                            weight: 'bold'
-                        },
+                        text: 'Распределение контактов',
+                        font: { size: 18, family: 'Inter', weight: 'bold' },
                         color: '#333'
                     }
                 }
             };
+            new Chart(ctx, { type: 'pie', data: data, options: options });
 
-            new Chart(ctx, {
-                type: 'pie', // Or 'doughnut' for a donut chart
-                data: data,
-                options: options
+            // Flatpickr and Contacts by Date Logic
+            const datePicker = document.getElementById('datePicker');
+            const contactsByDateList = document.getElementById('contactsByDateList');
+
+            flatpickr(datePicker, {
+                dateFormat: "Y-m-d",
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length > 0) {
+                        fetchContactsByDate(dateStr);
+                    } else {
+                        contactsByDateList.innerHTML = '<p class="text-gray-500 text-center">Выберите дату, чтобы увидеть контакты, созданные в этот день.</p>';
+                    }
+                }
             });
+
+            async function fetchContactsByDate(date) {
+                contactsByDateList.innerHTML = '<p class="text-blue-500 text-center">Загрузка контактов...</p>';
+                try {
+                    const response = await fetch(`{% url 'contacts:contacts_by_date_api' %}?date=${date}`);
+                    const data = await response.json();
+
+                    if (data.error) {
+                        contactsByDateList.innerHTML = `<p class="text-red-500 text-center">Ошибка: ${data.error}</p>`;
+                        return;
+                    }
+
+                    if (data.contacts && data.contacts.length > 0) {
+                        let html = '<ul class="list-disc list-inside space-y-2">';
+                        data.contacts.forEach(contact => {
+                            const createdAt = contact.created_at ? 
+                                new Date(contact.created_at).toLocaleDateString('ru-RU', {
+                                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                }) : 'N/A';
+                            html += `
+                                <li class="bg-blue-50 p-3 rounded-md shadow-sm border border-blue-100 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                    <div>
+                                        <strong class="text-blue-800 text-lg">${contact.name}</strong><br>
+                                        <span class="text-gray-700">Телефон: ${contact.phone_number}</span><br>
+                                        <span class="text-gray-700">Email: ${contact.email}</span>
+                                    </div>
+                                    <div class="text-gray-500 text-sm mt-2 sm:mt-0 sm:text-right">
+                                        Создан: ${createdAt}
+                                    </div>
+                                </li>
+                            `;
+                        });
+                        html += '</ul>';
+                        contactsByDateList.innerHTML = html;
+                    } else {
+                        contactsByDateList.innerHTML = '<p class="text-gray-500 text-center">На эту дату контактов не найдено.</p>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching contacts:', error);
+                    contactsByDateList.innerHTML = '<p class="text-red-500 text-center">Не удалось загрузить контакты. Попробуйте снова.</p>';
+                }
+            }
         });
     </script>
 
@@ -131,5 +195,6 @@
         .animate-fade-in-up-delay-1 { animation: fadeInUp 1s ease-out forwards 1.0s; }
         .animate-fade-in-up-delay-2 { animation: fadeInUp 1s ease-out forwards 1.2s; }
         .animate-fade-in-up-delay-3 { animation: fadeInUp 1s ease-out forwards 1.4s; }
+        .animate-fade-in-up-delay-4 { animation: fadeInUp 1s ease-out forwards 1.6s; } /* For the new section */
     </style>
 {% endblock %}
