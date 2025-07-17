@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'contacts',
+    'excel_analyzer',
+    'import_export'
 ]
 
 MIDDLEWARE = [

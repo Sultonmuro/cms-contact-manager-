@@ -13,4 +13,3 @@ class Contact(models.Model):
 
     class Meta:
         ordering = ['name']
-    
