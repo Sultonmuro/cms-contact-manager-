@@ -142,78 +142,78 @@ def delete_contact(request,pk):
     return render(request,'contacts/contact_confirm_delete.html',context)
 
 
-@login_required
-def chatbot_view(request):
-     print("DEBUG: chatbot_view accessed.")
-     if request.method == 'POST':
-        user_message = request.POST.get('message')
-        print(f"DEBUG: POST request received. User message: '{user_message}'")
+# @login_required
+# def chatbot_view(request):
+#      print("DEBUG: chatbot_view accessed.")
+#      if request.method == 'POST':
+#         user_message = request.POST.get('message')
+#         print(f"DEBUG: POST request received. User message: '{user_message}'")
 
-        if not user_message:
-            print("DEBUG: No message provided in POST request.")
-            return JsonResponse({'error': 'No message provided'}, status=400)
+#         if not user_message:
+#             print("DEBUG: No message provided in POST request.")
+#             return JsonResponse({'error': 'No message provided'}, status=400)
 
-        api_key = settings.OPENAI_API_KEY
-        api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+#         api_key = settings.OPENAI_API_KEY
+#         api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
-        headers = {
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": user_message}]}]
-        }
-        print(f"DEBUG: Payload for API call: {payload}")
-        # Be careful not to print the full API key in logs in production
-        print(f"DEBUG: API Key (first 5 chars): {api_key[:5]}... (length: {len(api_key)})") 
+#         headers = {
+#             "Content-Type": "application/json",
+#         }
+#         payload = {
+#             "contents": [{"role": "user", "parts": [{"text": user_message}]}]
+#         }
+#         print(f"DEBUG: Payload for API call: {payload}")
+#         # Be careful not to print the full API key in logs in production
+#         print(f"DEBUG: API Key (first 5 chars): {api_key[:5]}... (length: {len(api_key)})") 
 
-        try:
-            print(f"DEBUG: Attempting to send request to {api_url}")
-            response = requests.post(f"{api_url}?key={api_key}", headers=headers, json=payload, timeout=30) # Added timeout
-            print(f"DEBUG: API response status code: {response.status_code}")
-            print(f"DEBUG: Raw API response text: {response.text}") # Print raw text for all responses
+#         try:
+#             print(f"DEBUG: Attempting to send request to {api_url}")
+#             response = requests.post(f"{api_url}?key={api_key}", headers=headers, json=payload, timeout=30) # Added timeout
+#             print(f"DEBUG: API response status code: {response.status_code}")
+#             print(f"DEBUG: Raw API response text: {response.text}") # Print raw text for all responses
 
-            response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+#             response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
             
-            ai_response_data = response.json()
-            print(f"DEBUG: Parsed AI response data (JSON): {ai_response_data}")
+#             ai_response_data = response.json()
+#             print(f"DEBUG: Parsed AI response data (JSON): {ai_response_data}")
             
-            ai_text = ""
-            if ai_response_data and ai_response_data.get('candidates'):
-                for candidate in ai_response_data['candidates']:
-                    if candidate.get('content') and candidate['content'].get('parts'):
-                        for part in candidate['content']['parts']:
-                            if part.get('text'):
-                                ai_text += part['text']
-                                break
-                    if ai_text:
-                        break
+#             ai_text = ""
+#             if ai_response_data and ai_response_data.get('candidates'):
+#                 for candidate in ai_response_data['candidates']:
+#                     if candidate.get('content') and candidate['content'].get('parts'):
+#                         for part in candidate['content']['parts']:
+#                             if part.get('text'):
+#                                 ai_text += part['text']
+#                                 break
+#                     if ai_text:
+#                         break
 
-            if not ai_text:
-                print("DEBUG: No text found in AI response candidates. Response structure might be unexpected.")
-                ai_text = "Извините, я не смог получить ответ от ИИ."
+#             if not ai_text:
+#                 print("DEBUG: No text found in AI response candidates. Response structure might be unexpected.")
+#                 ai_text = "Извините, я не смог получить ответ от ИИ."
 
-            print(f"DEBUG: Final AI response text to send to frontend: '{ai_text}'")
-            return JsonResponse({'response': ai_text})
+#             print(f"DEBUG: Final AI response text to send to frontend: '{ai_text}'")
+#             return JsonResponse({'response': ai_text})
 
-        except requests.exceptions.Timeout:
-            print("DEBUG: API Request timed out.")
-            return JsonResponse({'error': "Превышено время ожидания ответа от ИИ. Пожалуйста, попробуйте снова."}, status=504) # Gateway Timeout
-        except requests.exceptions.RequestException as e:
-            print(f"DEBUG: API Request failed: {e}")
-            # If response exists, print its text for more context
-            if 'response' in locals() and response is not None:
-                print(f"DEBUG: Failed API response text: {response.text}")
-            return JsonResponse({'error': f"Ошибка при обращении к ИИ: {e}"}, status=500)
-        except json.JSONDecodeError:
-            print(f"DEBUG: Failed to decode JSON from AI response. Response text: {response.text}")
-            return JsonResponse({'error': "Неверный формат ответа от ИИ."}, status=500)
-        except Exception as e:
-            print(f"DEBUG: An unexpected error occurred: {e}")
-            return JsonResponse({'error': f"Произошла непредвиденная ошибка: {e}"}, status=500)
+#         except requests.exceptions.Timeout:
+#             print("DEBUG: API Request timed out.")
+#             return JsonResponse({'error': "Превышено время ожидания ответа от ИИ. Пожалуйста, попробуйте снова."}, status=504) # Gateway Timeout
+#         except requests.exceptions.RequestException as e:
+#             print(f"DEBUG: API Request failed: {e}")
+#             # If response exists, print its text for more context
+#             if 'response' in locals() and response is not None:
+#                 print(f"DEBUG: Failed API response text: {response.text}")
+#             return JsonResponse({'error': f"Ошибка при обращении к ИИ: {e}"}, status=500)
+#         except json.JSONDecodeError:
+#             print(f"DEBUG: Failed to decode JSON from AI response. Response text: {response.text}")
+#             return JsonResponse({'error': "Неверный формат ответа от ИИ."}, status=500)
+#         except Exception as e:
+#             print(f"DEBUG: An unexpected error occurred: {e}")
+#             return JsonResponse({'error': f"Произошла непредвиденная ошибка: {e}"}, status=500)
 
-    # For GET request, render the chatbot HTML page
-     context = {
-        'page_title': 'OpenAi Chatbot',
-    }
-     print("DEBUG: Rendering chatbot.html for GET request.")
-     return render(request, 'contacts/chatbot.html', context)
+#     # For GET request, render the chatbot HTML page
+#      context = {
+#         'page_title': 'OpenAi Chatbot',
+#     }
+#      print("DEBUG: Rendering chatbot.html for GET request.")
+#      return render(request, 'contacts/chatbot.html', context)
