@@ -17,10 +17,10 @@ class CardResource(resources.ModelResource):
     def before_import_row(self, row, **kwargs):
 
         if 'card_number' in row and row['card_number']:
-            row['card_number'] = re.sub(r'\D', '', str(row['card_number']))
+            row['card_number'] = re.sub(r'\D','', row['card_number'])
             if len(row['card_number']) > 16:
-                row['card_number'] = row['card_number'][:16]
-
+                row['card_number'] = row['card_number'][:16] # did it myself 
+            
         if 'expire' in row and row['expire']:
             expire_str = str(row['expire']).strip()
 
@@ -39,30 +39,31 @@ class CardResource(resources.ModelResource):
                     row['expire'] = dt_obj.strftime('%m/%y')
                 except ValueError:
                     row['expire']
-           # Clean phone_number: remove all non-digits and potentially truncate
+          
         if 'phone_number' in row and row['phone_number']:
             phone_str = str(row['phone_number']).strip()
-            # Remove all non-digit characters
-            cleaned_phone = re.sub(r'\D', '', phone_str)
+            
+            cleaned_phone = re.sub(r'\D', '', phone_str) 
+            # regular expressionsda ozini mini languagi bor va '/D' non-digits dgani non digitsla bosa ulani yoqot dgani yani replace with '' blank space
             row['phone_number'] = cleaned_phone[:20] 
-
+            #indexation 20 gacha dgani chiqar - > list = [start:end:steps] and we used[:20]
         if 'balance' in row and row['balance']:
             balance_str = str(row['balance']).lower()
-            balance_str = balance_str.replace('mlrd uzs','').replace(' ', '').replace(',', '')
+            balance_str = balance_str.replace('mlrd uzs','').replace(' ', '').replace(',', '') # filtering qvomiza, re.sub qse ham bolardi
             try:
                 if 'mlrd' in str(row['balance']).lower():
                      value = float(balance_str) * 1_000_000_000 # Convert to billion
                 else:
                     value = float(balance_str)
-                row['balance'] = str(round(value, 2)) # Round to 2 decimal places and convert back to string for import
+                row['balance'] = str(round(value, 2))
             except ValueError:
-                row['balance'] = '0.00' # Default to 0 if parsing fails
-          # Ensure status is one of the valid choices
+                row['balance'] = '0.00'
+        
         if 'card_status' in row and row['card_status']:
             status_upper = str(row['card_status']).upper()
             valid_statuses = [choice[0] for choice in CARD_STATUS]
             if status_upper not in valid_statuses:
-                row['card_status'] = 'ACTIVE' # Default to ACTIVE if invalid status provided
+                row['card_status'] = 'ACTIVE' 
     
         return super().before_import_row(row, **kwargs)
     def get_instance(self, instance_loader, row):
@@ -72,21 +73,18 @@ class CardResource(resources.ModelResource):
             return None
 @admin.action(description='Send SMS to selected cards')
 def send_sms_action(modeladmin, request, queryset):
-    # In a real application, you would integrate with an SMS gateway here.
-    # For this task, we're just simulating and logging.
     sent_count = 0
     log_messages = []
 
     for card in queryset:
         if card.phone_number:
-            # Simulate sending SMS
             message_content = f"Dear {card.owner}, your card {card.card_number[-4:]} balance is {card.balance} UZS. Status: {card.get_card_status_display()}."
             
-            # Log the action
+         
             SmsLog.objects.create(
                 card=card,
                 message=message_content,
-                success=True # Assume success for mock function
+                success=True 
             )
             log_messages.append(f"SMS sent to {card.owner} ({card.phone_number}) for card {card.card_number}.")
             sent_count += 1
@@ -108,14 +106,13 @@ def send_sms_action(modeladmin, request, queryset):
 class CardsAdmin(ImportExportModelAdmin):
     resource_class = CardResource
     list_display = ('card_number', 'owner', 'expire', 'phone_number', 'card_status', 'balance',)
-    list_filter = ('card_status', 'owner',) # Filtering by status and owner
-    search_fields = ('card_number', 'owner', 'phone_number',) # Searching by card number, owner, phone
-    actions = [send_sms_action] # Register the custom action
-
+    list_filter = ('card_status', 'owner',) 
+    search_fields = ('card_number', 'owner', 'phone_number',) 
+    actions = [send_sms_action] 
 @admin.register(SmsLog)
 class SMSLogAdmin(admin.ModelAdmin):
     list_display = ('card', 'message', 'sent_at', 'success',)
-    list_filter = ('sent_at', 'success', 'card__card_status',) # Filter by log date, success, and related card status
-    search_fields = ('card__card_number', 'card__owner', 'message',) # Search by related card info and message
-    readonly_fields = ('card', 'message', 'sent_at', 'success',) # Logs should not be editable
+    list_filter = ('sent_at', 'success', 'card__card_status',) 
+    search_fields = ('card__card_number', 'card__owner', 'message',)
+    readonly_fields = ('card', 'message', 'sent_at', 'success',)
     
